@@ -1,0 +1,14 @@
+.venv/
+.pip-cache/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+resources/app.db
+srs_example_template.*
+SRS_Desktop_Multimedia_Recommender_Filled.txt
+SRS_*.doc
+SRS_*.docx
+Fin_SRS_*.doc
+Fin_SRS_*.docx
+*.drawio
