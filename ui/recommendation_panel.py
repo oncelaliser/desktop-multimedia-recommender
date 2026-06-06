@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QFrame, QLabel, QScrollArea, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from data.models.recommendation import Recommendation
 
@@ -24,8 +24,15 @@ class RecommendationCard(QFrame):
         title.setStyleSheet("font-weight: 700; font-size: 16px;")
         title.setWordWrap(True)
 
-        score = QLabel(f"{recommendation.score:.1f}% match")
-        score.setObjectName("Score")
+        header = QHBoxLayout()
+        score_label = QLabel(f"{recommendation.score:.1f}% match")
+        score_label.setObjectName("Score")
+        header.addWidget(score_label)
+        header.addStretch()
+        if media.rating is not None:
+            rating_label = QLabel(f"★ {media.rating:.1f}")
+            rating_label.setStyleSheet("color: #f0a500; font-weight: 600;")
+            header.addWidget(rating_label)
 
         meta = QLabel(f"{media.media_type.title()}{year} • {genres} • {media.source}")
         meta.setObjectName("Muted")
@@ -35,7 +42,7 @@ class RecommendationCard(QFrame):
         reason.setWordWrap(True)
 
         layout.addWidget(title)
-        layout.addWidget(score)
+        layout.addLayout(header)
         layout.addWidget(meta)
         layout.addWidget(reason)
 

@@ -4,6 +4,12 @@ import sys
 
 from PyQt6.QtWidgets import QApplication
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from app.config import AppConfig
 from ui.main_window import MainWindow
 

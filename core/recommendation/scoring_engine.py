@@ -32,6 +32,11 @@ class ScoringEngine:
             + 0.05 * rating_score
             + 0.05 * popularity_score
         )
+
+        # Hard penalty: if genres were specified but item has none matching, cap at 30%
+        if intent.genres and genre_score == 0.0:
+            final = min(final, 0.30)
+
         return round(final * 100, 1)
 
     def _overlap(self, wanted: list[str], actual: list[str]) -> float:
@@ -46,10 +51,14 @@ class ScoringEngine:
             return 0.5
         if not year:
             return 0.0
-        if era == "1990s" and 1990 <= year <= 1999:
-            return 1.0
-        if era == "1980s" and 1980 <= year <= 1989:
-            return 1.0
-        if era == "2000s" and 2000 <= year <= 2009:
-            return 1.0
+        # era format: "1990s", "1980s", "2010s", etc.
+        try:
+            decade_start = int(era.rstrip("s"))
+            if decade_start <= year <= decade_start + 9:
+                return 1.0
+            # partial credit for adjacent decade
+            if abs(year - decade_start) <= 14:
+                return 0.4
+        except ValueError:
+            pass
         return 0.0

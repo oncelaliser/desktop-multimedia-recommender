@@ -16,6 +16,8 @@ from app.config import AppConfig
 from app.constants import APP_TITLE
 from core.chatbot.chat_service import ChatService
 from core.recommendation.recommender_service import RecommenderService
+from data.db.connection import connect
+from data.db.repositories.media_repository import MediaRepository
 from ui.chatbot_panel import ChatbotPanel
 from ui.recommendation_panel import RecommendationPanel
 from ui.settings_dialog import SettingsDialog
@@ -27,7 +29,31 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.config = config
         self.chat_service = ChatService(config)
-        self.recommender_service = RecommenderService()
+
+        tmdb_client = None
+        if config.tmdb_api_key:
+            from integrations.tmdb_client import TmdbClient
+            tmdb_client = TmdbClient(config.tmdb_api_key)
+
+        omdb_client = None
+        if config.omdb_api_key:
+            from integrations.omdb_client import OmdbClient
+            omdb_client = OmdbClient(config.omdb_api_key)
+
+        spotify_client = None
+        if config.spotify_client_id and config.spotify_client_secret:
+            from integrations.spotify_client import SpotifyClient
+            spotify_client = SpotifyClient(config.spotify_client_id, config.spotify_client_secret)
+
+        db_conn = connect()
+        media_repo = MediaRepository(db_conn)
+
+        self.recommender_service = RecommenderService(
+            tmdb_client=tmdb_client,
+            omdb_client=omdb_client,
+            spotify_client=spotify_client,
+            media_repository=media_repo,
+        )
 
         self.setWindowTitle(APP_TITLE)
         self.resize(1180, 720)
@@ -61,9 +87,15 @@ class MainWindow(QMainWindow):
 
         title = QLabel(APP_TITLE)
         title.setObjectName("Title")
+        if self.config.tmdb_api_key:
+            media_status = "TMDB live"
+        elif self.config.omdb_api_key:
+            media_status = "OMDb live"
+        else:
+            media_status = "sample data (no API key)"
         subtitle = QLabel(
-            "Natural language chatbot + modular recommendation engine. "
-            "Current iteration uses offline provider and sample media data."
+            f"Natural language chatbot + modular recommendation engine. "
+            f"AI: offline provider | Media: {media_status}."
         )
         subtitle.setObjectName("Subtitle")
         subtitle.setWordWrap(True)
