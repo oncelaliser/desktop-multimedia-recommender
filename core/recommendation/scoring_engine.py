@@ -36,6 +36,9 @@ class ScoringEngine:
         # Hard penalty: if genres were specified but item has none matching, cap at 30%
         if intent.genres and genre_score == 0.0:
             final = min(final, 0.30)
+        # Soft penalty: if 2+ genres requested but item doesn't match all of them, cap at 44%
+        elif intent.genres and len(intent.genres) >= 2 and genre_score < 1.0:
+            final = min(final, 0.44)
 
         return round(final * 100, 1)
 
