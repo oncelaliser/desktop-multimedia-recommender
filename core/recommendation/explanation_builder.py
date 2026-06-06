@@ -9,6 +9,8 @@ _GENRE_TR = {
     "mystery": "gizem", "romance": "romantik", "thriller": "gerilim",
     "animation": "animasyon", "documentary": "belgesel", "chill": "sakinletici",
     "fantasy": "fantastik/fantasy",
+    "racing": "yarış/motorsport",
+    "sports": "spor",
 }
 
 _MOOD_TR = {

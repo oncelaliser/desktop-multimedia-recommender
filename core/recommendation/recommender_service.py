@@ -175,6 +175,30 @@ class RecommenderService:
                 seen.add(item.id)
                 results.append(item)
 
+        # Keyword-based discovery for specific subgenres TMDB can't find via genre alone
+        _KEYWORD_MAP = {
+            "yarış":    "10039|302340|268011",  # racing, auto racing, motor racing
+            "sürüş":   "10039|302340",
+            "formula":  "10039|302340",
+            "futbol":   "13042|352822|579",     # football/soccer, american football
+            "basketbol":"169055",                # NBA/basketball
+            "boks":     "209476",               # boxing
+            "güreş":    "11451",                # wrestling
+            "belgesel": None,                    # handled by genre
+        }
+        raw_lower = intent.raw_text.lower()
+        for tr_word, kw_ids in _KEYWORD_MAP.items():
+            if tr_word in raw_lower and kw_ids:
+                for item in self._tmdb.discover_by_keywords(kw_ids, "movie") + self._tmdb.discover_by_keywords(kw_ids, "tv"):
+                    # Tag with the matched subgenre so scoring picks it up
+                    if tr_word in ("yarış", "sürüş", "formula") and "racing" not in item.genres:
+                        from dataclasses import replace
+                        item = replace(item, genres=item.genres + ["racing"])
+                    elif tr_word in ("futbol", "basketbol", "boks", "güreş") and "sports" not in item.genres:
+                        from dataclasses import replace
+                        item = replace(item, genres=item.genres + ["sports"])
+                    _add_tmdb([item])
+
         # 1. similar_to title search first
         if intent.similar_to:
             _add_tmdb(self._tmdb.search(intent.similar_to, media_type=media_type))

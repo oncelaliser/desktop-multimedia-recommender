@@ -85,6 +85,19 @@ class TmdbClient(BaseApiClient):
             if item.get("title") or item.get("name")
         ]
 
+    def discover_by_keywords(self, keyword_ids: str, media_type: str = "movie") -> list[MediaItem]:
+        """keyword_ids: pipe-separated TMDB keyword IDs e.g. '10039|302340'"""
+        is_tv = media_type == "tv"
+        endpoint = "/discover/tv" if is_tv else "/discover/movie"
+        data = self._get(endpoint, {
+            "with_keywords": keyword_ids,
+            "sort_by": "popularity.desc",
+            "vote_count.gte": 100,
+        })
+        kind = "series" if is_tv else "movie"
+        return [self._normalize(item, kind) for item in data.get("results", [])
+                if item.get("title") or item.get("name")]
+
     def _search_movies(self, query: str, page: int) -> list[MediaItem]:
         data = self._get("/search/movie", {"query": query, "page": page})
         return [self._normalize(item, "movie") for item in data.get("results", []) if item.get("title")]
