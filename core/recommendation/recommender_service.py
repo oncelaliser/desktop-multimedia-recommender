@@ -177,9 +177,11 @@ class RecommenderService:
 
         # Keyword-based discovery for specific subgenres TMDB can't find via genre alone
         _KEYWORD_MAP = {
-            "yarış":    "10039|302340|268011",  # racing, auto racing, motor racing
-            "sürüş":   "10039|302340",
+            "yarış":    "10039|302340|268011|266725",  # racing, auto racing, motor racing, street racing
+            "sürüş":   "10039|302340|266725",
             "formula":  "10039|302340",
+            "araba":    "10039|302340|266725",
+            "hızlı":   "10039|266725",
             "futbol":   "13042|352822|579",     # football/soccer, american football
             "basketbol":"169055",                # NBA/basketball
             "boks":     "209476",               # boxing
