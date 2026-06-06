@@ -44,17 +44,33 @@ class TmdbClient(BaseApiClient):
         self._session.params = {"api_key": api_key, "language": "en-US"}  # type: ignore[assignment]
 
     def find_by_title(self, title: str, media_type: str = "any") -> tuple[int, str] | None:
-        """Return (tmdb_id, 'movie'|'tv') for the best title match, or None."""
+        """Return (tmdb_id, 'movie'|'tv') for the best title match, or None.
+        For 'any', picks whichever type has higher vote_count (more well-known)."""
+        best_movie = best_tv = None
         if media_type in ("movie", "any"):
             data = self._get("/search/movie", {"query": title, "page": 1})
             results = data.get("results", [])
             if results:
-                return results[0].get("id"), "movie"
+                best_movie = results[0]
         if media_type in ("tv", "series", "any"):
             data = self._get("/search/tv", {"query": title, "page": 1})
             results = data.get("results", [])
             if results:
-                return results[0].get("id"), "tv"
+                best_tv = results[0]
+
+        if media_type == "movie" and best_movie:
+            return best_movie.get("id"), "movie"
+        if media_type in ("tv", "series") and best_tv:
+            return best_tv.get("id"), "tv"
+
+        # "any": pick whichever has more votes (the more famous / intended match)
+        if best_movie and best_tv:
+            mv, tv = best_movie.get("vote_count", 0), best_tv.get("vote_count", 0)
+            return (best_movie.get("id"), "movie") if mv >= tv else (best_tv.get("id"), "tv")
+        if best_movie:
+            return best_movie.get("id"), "movie"
+        if best_tv:
+            return best_tv.get("id"), "tv"
         return None
 
     def similar(self, tmdb_id: int, media_type: str = "movie") -> list[MediaItem]:
@@ -96,7 +112,7 @@ class TmdbClient(BaseApiClient):
             "with_genres": genre_id,
             "sort_by": "popularity.desc",
             "page": page,
-            "vote_count.gte": 50 if language else (100 if is_tv else 200),
+            "vote_count.gte": 150 if language else (300 if is_tv else 800),
         }
         if language:
             params["with_original_language"] = language

@@ -75,11 +75,16 @@ class IntentParser:
 
     def parse(self, text: str) -> UserIntent:
         normalized = normalize_text(text)
-        media_type = self._first_match(normalized, self.MEDIA_KEYWORDS)
+        similar_to = self._extract_similar_to(text)
+        # Strip the similar_to title from normalized text before detecting media_type
+        # so "game" in "Game of Thrones gibi" doesn't register as media_type=game.
+        text_without_title = normalized
+        if similar_to:
+            text_without_title = normalized.replace(similar_to.lower(), "")
+        media_type = self._first_match(text_without_title, self.MEDIA_KEYWORDS)
         genres = self._all_matches(normalized, self.GENRE_KEYWORDS)
         moods = self._all_matches(normalized, self.MOOD_KEYWORDS)
         era = self._extract_era(normalized)
-        similar_to = self._extract_similar_to(text)
         language = self._first_match(normalized, self.LANGUAGE_KEYWORDS)
 
         return UserIntent(
@@ -95,6 +100,15 @@ class IntentParser:
     def _first_match(self, text: str, dictionary: dict[str, tuple[str, ...]]) -> str | None:
         matches = self._all_matches(text, dictionary)
         return matches[0] if matches else None
+
+    def _first_word_match(self, text: str, dictionary: dict[str, tuple[str, ...]]) -> str | None:
+        """Like _first_match but requires keywords to appear as whole words."""
+        for label, keywords in dictionary.items():
+            for kw in keywords:
+                pattern = r"(?<![a-zÀ-ɏ])" + re.escape(kw) + r"(?![a-zÀ-ɏ])"
+                if re.search(pattern, text, re.IGNORECASE):
+                    return label
+        return None
 
     def _all_matches(self, text: str, dictionary: dict[str, tuple[str, ...]]) -> list[str]:
         found: list[str] = []

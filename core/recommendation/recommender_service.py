@@ -41,15 +41,35 @@ class RecommenderService:
     ) -> list[Recommendation]:
         intent = self.intent_parser.parse(user_prompt)
         catalog = self._build_catalog(intent, selected_media_type)
-        catalog = self._filter_by_media_type(catalog, selected_media_type)
 
-        # Deduplicate by normalized title+type across sources (prefer higher-rated)
+        # If similar_to is set and TMDB found a match, infer media_type from it
+        # so "breaking bad gibi" (Any) doesn't return games alongside shows.
+        # Only infer when the user hasn't specified a type AND intent has no type either.
+        effective_media_type = selected_media_type
+        if (intent.similar_to and self._tmdb
+                and selected_media_type == "Any"
+                and intent.media_type is None):
+            found = self._tmdb.find_by_title(intent.similar_to, "any")
+            if found:
+                _, kind = found
+                effective_media_type = "series" if kind == "tv" else "movie"
+
+        catalog = self._filter_by_media_type(catalog, effective_media_type)
+
+        # TMDB recommendation items get a boost when similar_to is active —
+        # they're curated matches and shouldn't lose to high-rated static catalog items.
+        live_ids = {m.id for m in catalog if m.source != "sample"}
+        similar_boost = 15.0 if (intent.similar_to and live_ids) else 0.0
+
+        # Deduplicate by normalized title+type across sources (prefer higher-scored)
         seen_titles: dict[str, Recommendation] = {}
         for media in catalog:
             key = f"{media.title.lower().strip()}|{media.media_type}"
+            base_score = self.scoring_engine.score(intent, media)
+            boost = similar_boost if media.source != "sample" else 0.0
             rec = Recommendation(
                 media=media,
-                score=self.scoring_engine.score(intent, media),
+                score=base_score + boost,
                 reason=self.explanation_builder.build(intent, media),
             )
             if key not in seen_titles or rec.score > seen_titles[key].score:
