@@ -52,6 +52,7 @@ class IntentParser:
         "animation": ("animasyon", "animation", "anime", "çizgi"),
         "documentary": ("belgesel", "documentary"),
         "chill": ("sakin", "chill", "relax", "rahatlatıcı", "feel good"),
+        "strategy": ("strateji", "strategy", "taktik", "tactical", "savaş strateji", "yönetim"),
     }
 
     MOOD_KEYWORDS = {

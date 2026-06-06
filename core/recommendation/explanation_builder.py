@@ -11,6 +11,7 @@ _GENRE_TR = {
     "fantasy": "fantastik/fantasy",
     "racing": "yarış/motorsport",
     "sports": "spor",
+    "strategy": "strateji",
 }
 
 _MOOD_TR = {
