@@ -48,13 +48,13 @@ class MainWindow(QMainWindow):
         db_conn = connect()
         media_repo = MediaRepository(db_conn)
 
-        intent_parser = self._build_intent_parser(config)
+        self.intent_parser = self._build_intent_parser(config)
         self.recommender_service = RecommenderService(
             tmdb_client=tmdb_client,
             omdb_client=omdb_client,
             spotify_client=spotify_client,
             media_repository=media_repo,
-            intent_parser=intent_parser,
+            intent_parser=self.intent_parser,
         )
 
         self.setWindowTitle(APP_TITLE)
@@ -135,18 +135,62 @@ class MainWindow(QMainWindow):
     def handle_user_prompt(self, text: str, ai_mode: str, media_type: str) -> None:
         self.chatbot_panel.append_user_message(text)
 
-        chat_result = self.chat_service.respond(
-            user_message=text,
-            mode=ai_mode,
-            context={"media_type": media_type},
-        )
-        self.chatbot_panel.append_assistant_message(chat_result.text, chat_result.provider_name)
+        # Preferred path: a single LLM call returns BOTH the chatbot reply and the
+        # structured intent. This guarantees the left panel's answer and the right
+        # panel's recommendations describe the same titles, and halves API usage
+        # (avoiding the rate-limit races that desynced the two panels before).
+        shared_intent = None
+        reply = None
+        provider_name = None
+        llm_mode = ai_mode == "OpenAI-Compatible API"
+        analyze = getattr(self.intent_parser, "analyze", None)
+        if llm_mode and callable(analyze):
+            reply, shared_intent = analyze(text)
+            provider_name = self.config.openai_model
+
+        if shared_intent is None:
+            shared_intent = self.intent_parser.parse(text)
 
         recommendations = self.recommender_service.recommend(
             user_prompt=text,
             selected_media_type=media_type,
+            parsed_intent=shared_intent,
         )
+
+        if reply is not None:
+            # Unified LLM path succeeded — reply and recommendations share one intent.
+            self.chatbot_panel.append_assistant_message(reply, provider_name or "LLM")
+        elif llm_mode:
+            # LLM mode but the unified call failed (e.g. rate limit). Do NOT make a
+            # separate chat call — that's what desynced the panels before. Instead build
+            # the reply FROM the actual recommendations so left always matches right.
+            self.chatbot_panel.append_assistant_message(
+                self._reply_from_recommendations(recommendations),
+                "fallback (API limiti)",
+            )
+        else:
+            # Non-LLM chat providers (Offline Basic, LM Studio) — use chat service.
+            chat_result = self.chat_service.respond(
+                user_message=text,
+                mode=ai_mode,
+                context={"media_type": media_type},
+            )
+            self.chatbot_panel.append_assistant_message(chat_result.text, chat_result.provider_name)
+
         self.recommendation_panel.show_recommendations(recommendations)
+
+    @staticmethod
+    def _reply_from_recommendations(recommendations: list) -> str:
+        """Build a chatbot reply from the actual recommendation list, so the left panel
+        stays consistent with the right even when the LLM call failed."""
+        if not recommendations:
+            return "Şu an uygun bir öneri bulamadım. Aramanı biraz farklı ifade eder misin?"
+        titles = []
+        for rec in recommendations[:5]:
+            year = f" ({rec.media.release_year})" if rec.media.release_year else ""
+            titles.append(f"{rec.media.title}{year}")
+        listed = ", ".join(titles)
+        return f"İşte sana uygun önerilerim: {listed}. Sağdaki listede detaylarını görebilirsin."
 
     def _build_intent_parser(self, config: AppConfig):
         from core.chatbot.intent_parser import IntentParser

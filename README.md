@@ -2,7 +2,43 @@
 
 Python/PyQt6 desktop application that accepts natural language prompts and returns ranked, explainable media recommendations across movies, series, music, and games.
 
-## Setup
+---
+
+## 🚀 Hızlı Başlangıç (arkadaşlar için)
+
+**Gerekenler:** Python 3.10+ ([python.org](https://www.python.org/downloads/)) ve internet.
+
+```bash
+# 1) Projeyi indir
+git clone https://github.com/LordAlis/desktop-multimedia-recommender.git
+cd desktop-multimedia-recommender
+
+# 2) Sanal ortam kur + bağımlılıkları yükle
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+# 3) API key'leri ayarla
+cp .env.example .env               # Windows: copy .env.example .env
+#   .env dosyasını aç, TMDB_API_KEY ve OPENAI_API_KEY (Groq) satırlarını doldur
+
+# 4) Çalıştır
+python main.py
+```
+
+### Hangi key'leri almalıyım?
+
+| Key | Nereden (ücretsiz) | Süre | Şart mı? |
+|-----|--------------------|------|----------|
+| **TMDB** | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) | ~2 dk | Film/dizi için gerekli |
+| **Groq** | [console.groq.com/keys](https://console.groq.com/keys) | ~1 dk, kart yok | Akıllı öneri için önerilir |
+
+> **Not:** Groq'un günlük token limiti kişiye özeldir — herkes kendi key'ini almalı.
+> Hiç key girmezsen uygulama yine açılır; örnek katalogla basit öneri yapar.
+
+---
+
+## Setup (English)
 
 ```bash
 python3 -m venv .venv
@@ -21,7 +57,7 @@ Copy `.env.example` to `.env` and fill in the keys you have. All are optional �
 | `TMDB_API_KEY` | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) (free) | Live movie & series search |
 | `OMDB_API_KEY` | [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) (free tier) | IMDb rating enrichment |
 | `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) (free) | Music recommendations |
-| `OPENAI_API_KEY` | [platform.openai.com](https://platform.openai.com) | Cloud LLM chatbot |
+| `OPENAI_API_KEY` | [console.groq.com/keys](https://console.groq.com/keys) (Groq, free) or any OpenAI-compatible endpoint | Cloud LLM chatbot + smart intent parsing |
 
 LM Studio mode requires [LM Studio](https://lmstudio.ai) to be running locally with a model loaded.
 

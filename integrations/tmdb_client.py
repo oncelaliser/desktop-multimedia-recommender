@@ -17,7 +17,7 @@ _MOVIE_GENRE_MAP = {
 _TV_GENRE_MAP = {
     10759: "action", 16: "animation", 35: "comedy", 80: "crime",
     99: "documentary", 18: "drama", 10751: "family",
-    10765: "fantasy",  # Sci-Fi & Fantasy (TV)
+    10765: "sci-fi",  # Sci-Fi & Fantasy (TV) — mapped to sci-fi so queries work
     27: "horror", 9648: "mystery", 10749: "romance",
     53: "thriller", 10768: "war",
 }
@@ -72,6 +72,21 @@ class TmdbClient(BaseApiClient):
         if best_tv:
             return best_tv.get("id"), "tv"
         return None
+
+    def details(self, tmdb_id: int, media_type: str = "movie") -> MediaItem | None:
+        """Fetch a single title's full record so the seed itself can appear in results."""
+        kind = "series" if media_type == "tv" else "movie"
+        endpoint = f"/{'tv' if media_type == 'tv' else 'movie'}/{tmdb_id}"
+        try:
+            data = self._get(endpoint, {})
+        except Exception:
+            return None
+        if not (data.get("title") or data.get("name")):
+            return None
+        # /movie/{id} returns 'genres' as objects, not 'genre_ids' — normalize that shape
+        if "genres" in data and "genre_ids" not in data:
+            data = {**data, "genre_ids": [g.get("id") for g in data.get("genres", []) if g.get("id")]}
+        return self._normalize(data, kind)
 
     def similar(self, tmdb_id: int, media_type: str = "movie") -> list[MediaItem]:
         """TMDB /similar — same genre/style, hand-curated by TMDB editors."""
@@ -175,6 +190,7 @@ class TmdbClient(BaseApiClient):
         popularity_raw = raw.get("popularity") or 0.0
         popularity = min(popularity_raw / 100.0, 1.0)
         external_id = str(raw.get("id", ""))
+        language = raw.get("original_language") or None
 
         return MediaItem(
             id=f"tmdb-{media_type}-{external_id}",
@@ -188,8 +204,13 @@ class TmdbClient(BaseApiClient):
             external_id=external_id,
             rating=rating,
             popularity=popularity,
+            language=language,
         )
 
     def _genre_name_to_id(self, genre_name: str, media_type: str) -> int | None:
         lookup = _TV_NAME_TO_ID if media_type == "tv" else _MOVIE_NAME_TO_ID
-        return lookup.get(genre_name.lower())
+        result = lookup.get(genre_name.lower())
+        # TV: "fantasy" also maps to 10765 (Sci-Fi & Fantasy)
+        if result is None and media_type == "tv" and genre_name.lower() == "fantasy":
+            return 10765
+        return result

@@ -15,6 +15,9 @@ class UserIntent:
     era: str | None = None
     similar_to: str | None = None
     language: str | None = None
+    seed_titles: list[str] = field(default_factory=list)  # LLM-suggested titles to seed TMDB recommendations
+    year_min: int | None = None  # earliest release year ("son 5 yıl" → 2021)
+    year_max: int | None = None  # latest release year
 
 
 class IntentParser:
@@ -71,6 +74,11 @@ class IntentParser:
         "es": ("ispanyol", "spanish", "spain"),
         "fr": ("fransız", "french", "france"),
         "it": ("italyan", "italian", "italy"),
+        "de": ("alman", "almanca", "german", "germany", "deutschland", "avusturya", "austria"),
+        "zh": ("çin", "chinese", "china", "çince", "mandarin"),
+        "hi": ("hint", "hindi", "bollywood", "indian", "india"),
+        "pt": ("portekiz", "brezilya", "portuguese", "brazil", "brasil"),
+        "sv": ("iskandinav", "İsveç", "nordic", "swedish", "norveç", "norwegian", "danimarka", "danish"),
     }
 
     def parse(self, text: str) -> UserIntent:
