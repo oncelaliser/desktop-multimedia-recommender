@@ -32,7 +32,7 @@ class IntentParser:
                   "narcotic", "drug", "drugs", "murder", "killer", "mafia", "mob",
                   "heist", "uyuşturucu", "katil"),
         "mystery": ("gizem", "mystery", "mysterious", "gizemli", "paranormal"),
-        "drama": ("dram", "drama", "duygusal", "dramatik"),
+        "drama": ("dram", "drama", "duygusal", "dramatik", "düşündürücü", "derin", "gerçekçi"),
         "comedy": ("komedi", "comedy", "funny", "güldürü", "komik", "eğlenceli", "neşeli", "gülünç"),
         "sci-fi": ("bilim kurgu", "sci-fi", "science fiction", "cyberpunk", "uzay", "fütürist",
                    "space", "robot", "alien", "future", "distopik", "distopia", "dystopia"),
@@ -118,12 +118,12 @@ class IntentParser:
         return found
 
     def _extract_era(self, text: str) -> str | None:
-        # Match "1970s", "70s", "70'lar", "70'ler", "1970", etc.
-        m = re.search(r"\b(19[4-9]\d|20[012]\d)s?\b", text)
+        # Match "1970s", "70s", "70'lar", "70'ler", "2000li", "2000ler", etc.
+        m = re.search(r"\b(19[4-9]\d|20[012]\d)[''']?(?:s|li|ler|lar|lı)?\b", text)
         if m:
             year = int(m.group(1))
             return f"{(year // 10) * 10}s"
-        m = re.search(r"\b([4-9]\d)[''']?(lar|ler|s)?\b", text)
+        m = re.search(r"\b([4-9]\d)[''']?(lar|ler|li|lı|s)?\b", text)
         if m:
             decade = int(m.group(1))
             if 40 <= decade <= 99:

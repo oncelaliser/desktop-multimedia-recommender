@@ -56,6 +56,20 @@ class RecommenderService:
 
         catalog = self._filter_by_media_type(catalog, effective_media_type)
 
+        # In "Any" mode, hide games/music unless the user explicitly asked for them.
+        # Games dominate by rating but users saying "kasvetli bir şey" expect movies/series.
+        _GAME_GENRES = {"racing", "strategy", "sports"}
+        if effective_media_type == "Any":
+            wants_game = (
+                intent.media_type == "game"
+                or bool(set(intent.genres) & _GAME_GENRES)
+            )
+            wants_music = intent.media_type == "music"
+            if not wants_game:
+                catalog = [m for m in catalog if m.media_type != "game"]
+            if not wants_music:
+                catalog = [m for m in catalog if m.media_type != "music"]
+
         # TMDB recommendation items get a boost when similar_to is active —
         # they're curated matches and shouldn't lose to high-rated static catalog items.
         live_ids = {m.id for m in catalog if m.source != "sample"}
