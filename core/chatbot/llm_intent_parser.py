@@ -78,7 +78,6 @@ class LLMIntentParser:
                 {"role": "user", "content": text},
             ],
             "temperature": 0.0,
-            "max_tokens": 256,
         }
         resp = requests.post(
             f"{self._base_url}/chat/completions",
