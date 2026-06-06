@@ -43,6 +43,36 @@ class TmdbClient(BaseApiClient):
         self._session = requests.Session()
         self._session.params = {"api_key": api_key, "language": "en-US"}  # type: ignore[assignment]
 
+    def find_by_title(self, title: str, media_type: str = "any") -> tuple[int, str] | None:
+        """Return (tmdb_id, 'movie'|'tv') for the best title match, or None."""
+        if media_type in ("movie", "any"):
+            data = self._get("/search/movie", {"query": title, "page": 1})
+            results = data.get("results", [])
+            if results:
+                return results[0].get("id"), "movie"
+        if media_type in ("tv", "series", "any"):
+            data = self._get("/search/tv", {"query": title, "page": 1})
+            results = data.get("results", [])
+            if results:
+                return results[0].get("id"), "tv"
+        return None
+
+    def similar(self, tmdb_id: int, media_type: str = "movie") -> list[MediaItem]:
+        """TMDB /similar — same genre/style, hand-curated by TMDB editors."""
+        kind = "series" if media_type == "tv" else "movie"
+        endpoint = f"/{'tv' if media_type == 'tv' else 'movie'}/{tmdb_id}/similar"
+        data = self._get(endpoint, {"page": 1})
+        return [self._normalize(item, kind) for item in data.get("results", [])
+                if item.get("title") or item.get("name")]
+
+    def recommendations(self, tmdb_id: int, media_type: str = "movie") -> list[MediaItem]:
+        """TMDB /recommendations — algorithmic similar content."""
+        kind = "series" if media_type == "tv" else "movie"
+        endpoint = f"/{'tv' if media_type == 'tv' else 'movie'}/{tmdb_id}/recommendations"
+        data = self._get(endpoint, {"page": 1})
+        return [self._normalize(item, kind) for item in data.get("results", [])
+                if item.get("title") or item.get("name")]
+
     def search(self, query: str, media_type: str = "any", page: int = 1) -> list[MediaItem]:
         movies = self._search_movies(query, page) if media_type in ("movie", "any") else []
         series = self._search_tv(query, page) if media_type in ("series", "any") else []

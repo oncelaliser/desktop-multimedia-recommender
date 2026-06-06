@@ -201,9 +201,18 @@ class RecommenderService:
                         item = replace(item, genres=item.genres + ["sports"])
                     _add_tmdb([item])
 
-        # 1. similar_to title search first
+        # 1. similar_to: use TMDB's own similar/recommendations endpoints (much better signal)
         if intent.similar_to:
-            _add_tmdb(self._tmdb.search(intent.similar_to, media_type=media_type))
+            for mt in (["movie", "tv"] if media_type == "any"
+                       else (["tv"] if media_type == "series" else ["movie"])):
+                found = self._tmdb.find_by_title(intent.similar_to, mt)
+                if found:
+                    tmdb_id, kind = found
+                    _add_tmdb(self._tmdb.recommendations(tmdb_id, kind))
+                    _add_tmdb(self._tmdb.similar(tmdb_id, kind))
+            # fallback: title search if no ID found
+            if not results:
+                _add_tmdb(self._tmdb.search(intent.similar_to, media_type=media_type))
 
         # 2. Genre discover — best quality for genre queries
         year_from = year_to = None

@@ -48,11 +48,13 @@ class MainWindow(QMainWindow):
         db_conn = connect()
         media_repo = MediaRepository(db_conn)
 
+        intent_parser = self._build_intent_parser(config)
         self.recommender_service = RecommenderService(
             tmdb_client=tmdb_client,
             omdb_client=omdb_client,
             spotify_client=spotify_client,
             media_repository=media_repo,
+            intent_parser=intent_parser,
         )
 
         self.setWindowTitle(APP_TITLE)
@@ -93,9 +95,15 @@ class MainWindow(QMainWindow):
             media_status = "OMDb live"
         else:
             media_status = "sample data (no API key)"
+        if self.config.openai_api_key:
+            intent_status = f"LLM ({self.config.openai_model})"
+        elif self.config.lmstudio_model:
+            intent_status = f"LM Studio ({self.config.lmstudio_model})"
+        else:
+            intent_status = "keyword parser"
         subtitle = QLabel(
             f"Natural language chatbot + modular recommendation engine. "
-            f"AI: offline provider | Media: {media_status}."
+            f"Intent: {intent_status} | Media: {media_status}."
         )
         subtitle.setObjectName("Subtitle")
         subtitle.setWordWrap(True)
@@ -139,6 +147,36 @@ class MainWindow(QMainWindow):
             selected_media_type=media_type,
         )
         self.recommendation_panel.show_recommendations(recommendations)
+
+    def _build_intent_parser(self, config: AppConfig):
+        from core.chatbot.intent_parser import IntentParser
+        keyword_parser = IntentParser()
+        if config.openai_api_key:
+            try:
+                from core.chatbot.llm_intent_parser import LLMIntentParser
+                return LLMIntentParser(
+                    base_url=config.openai_base_url,
+                    api_key=config.openai_api_key,
+                    model=config.openai_model,
+                    fallback=keyword_parser,
+                )
+            except Exception:
+                pass
+        # Try LM Studio if running (no key needed, just check base URL is set)
+        if config.lmstudio_base_url and config.lmstudio_model:
+            try:
+                import requests as _req
+                _req.get(f"{config.lmstudio_base_url}/models", timeout=1)
+                from core.chatbot.llm_intent_parser import LLMIntentParser
+                return LLMIntentParser(
+                    base_url=config.lmstudio_base_url,
+                    api_key=None,
+                    model=config.lmstudio_model,
+                    fallback=keyword_parser,
+                )
+            except Exception:
+                pass
+        return keyword_parser
 
     def open_settings(self) -> None:
         SettingsDialog(self.config).exec()
