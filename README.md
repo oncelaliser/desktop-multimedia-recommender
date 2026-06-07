@@ -4,7 +4,7 @@ Python/PyQt6 desktop application that accepts natural language prompts and retur
 
 ---
 
-## 🚀 Hızlı Başlangıç (arkadaşlar için)
+## 🚀 Hızlı Başlangıç 
 
 **Gerekenler:** Python 3.10+ ([python.org](https://www.python.org/downloads/)) ve internet.
 
