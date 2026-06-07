@@ -11,7 +11,10 @@ from core.chatbot.intent_parser import IntentParser, UserIntent
 logger = logging.getLogger(__name__)
 
 _REPLY_FIELD = """\
-- reply: warm Turkish answer (2-4 sentences) recommending exactly the seed_titles by name. Plain prose."""
+
+The JSON MUST also include a "reply" field (REQUIRED, do not omit):
+- reply: warm Turkish answer (2-4 sentences) recommending exactly the seed_titles by name, plain prose.
+Example: {"reply":"Türk mafya dizileri için Çukur, Ezel ve Kurtlar Vadisi'ni öneririm; üçü de suç dünyasını çarpıcı işliyor.","media_type":"series","genres":["crime","drama"],"moods":["dark"],"era":null,"year_min":null,"year_max":null,"similar_to":null,"language":"tr","seed_titles":["Çukur","Ezel","Kurtlar Vadisi"]}"""
 
 _SYSTEM_PROMPT = """\
 Extract a JSON object from the user's movie/TV query (Turkish or English). Fields:
